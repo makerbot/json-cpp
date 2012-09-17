@@ -2,7 +2,7 @@ Source: mb-libjsoncpp
 Section: libs
 Priority: extra
 Maintainer: MakerBot Industries dev team <dev@makerbot.com>
-Build-Depends: debhelper (>= 8.0.0), cdbs, scons
+Build-Depends: debhelper, cdbs, scons
 Standards-Version: 3.9.2
 Homepage: https://github.com/makerbot/json-cpp
 #Vcs-Git: git@github.com:makerbot/json-cpp.git
