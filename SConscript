@@ -8,6 +8,12 @@ env = Environment(ENV=os.environ)
 if 'win32' == sys.platform:
     env.Tool('mb_mingw', toolpath=[Dir('submodules/mw-scons-tools')])
     env.Replace(CCFLAGS=[])
+if 'darwin' == sys.platform:
+    env.Replace(CC='clang')
+    env.Replace(CXX='clang++')
+    env.Append(CCFLAGS='-arch x86_64 -arch i386 -std=c++11 -stdlib=libc++')
+    env.Append(LINKFLAGS='-arch i386 -arch x86_64 -std=c++11 -stdlib=libc++')
+
 
 env.Append(CCFLAGS='-Wall')
 
