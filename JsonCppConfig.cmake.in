@@ -1,0 +1,19 @@
+# See manual:
+# http://www.cmake.org/cmake/help/v2.8.12/cmake.html#module:CMakePackageConfigHelpers
+
+@PACKAGE_INIT@
+
+# Set up the Windows & other API definitions.
+# These don't change project to project.
+if(WIN32)
+  set(API_IMPORT "__declspec(dllimport)")
+else()
+  set(API_IMPORT "")
+endif()
+
+# CONFIG_INSTALL_DESTINATION and INCLUDE_INSTALL_DESTINATION
+# should be passed in from the calling CMakeLists file
+include("@PACKAGE_CONFIG_INSTALL_DESTINATION@/JsonCppTargets.cmake")
+include_directories("@PACKAGE_INCLUDE_INSTALL_DESTINATION@")
+
+add_definitions("-DJSON_API=${API_IMPORT}")
