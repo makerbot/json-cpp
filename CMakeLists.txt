@@ -17,14 +17,14 @@ find_package(
 include_directories(include/jsoncpp)
 
 # This is the macro used in headers to indicate export of a function/class
-set(JSONCPP_API JSON_API)
+set(API_DEFINE JSON_API)
 
 if(WIN32)
-  add_definitions("-D${JSONCPP_API}=__declspec(dllexport)")
+  add_definitions("-D${API_DEFINE}=__declspec(dllexport)")
 else()
   add_definitions(
     "-fvisibility=hidden"
-    "-D${JSONCPP_API}=__attribute__ ((visibility (\"default\")))")
+    "-D${API_DEFINE}=__attribute__ ((visibility (\"default\")))")
 endif()
 
 add_library(
@@ -40,19 +40,19 @@ include(CMakePackageConfigHelpers)
 
 # Names of files for exporting
 set(JSONCPP_CONFIG "${CMAKE_BINARY_DIR}/JsonCppConfig.cmake")
-set(JSONCPP_CONFIG_TEMPLATE "JsonCppConfig.cmake.in")
 set(JSONCPP_CONFIG_VERSION "${CMAKE_BINARY_DIR}/JsonCppConfigVersion.cmake")
-set(JSONCPP_TARGETS_FILE "JsonCppTargets")
+set(TARGETS_FILE "JsonCppTargets")
 
 # Create the config file from the config template
 configure_package_config_file(
-  "${JSONCPP_CONFIG_TEMPLATE}"
+  "${CONFIG_TEMPLATE}"
   "${JSONCPP_CONFIG}"
   INSTALL_DESTINATION ${CONFIG_INSTALL_DESTINATION}
   PATH_VARS
     CONFIG_INSTALL_DESTINATION
     INCLUDE_INSTALL_DESTINATION
-    JSONCPP_TARGETS_FILE
+    TARGETS_FILE
+    API_DEFINE
 )
 
 # Create the version file
@@ -65,7 +65,7 @@ write_basic_package_version_file(
 # Install The library, exporting the targets to the targets file
 install(
   TARGETS json
-  EXPORT ${JSONCPP_TARGETS_FILE}
+  EXPORT ${TARGETS_FILE}
   RUNTIME DESTINATION ${BIN_INSTALL_DESTINATION}
   LIBRARY DESTINATION ${LIB_INSTALL_DESTINATION}
   ARCHIVE DESTINATION ${LIB_INSTALL_DESTINATION}
@@ -78,7 +78,7 @@ install(
 )
 
 install(
-  EXPORT ${JSONCPP_TARGETS_FILE}
+  EXPORT ${TARGETS_FILE}
   NAMESPACE JSONCPP::
   DESTINATION ${CONFIG_INSTALL_DESTINATION}
 )
