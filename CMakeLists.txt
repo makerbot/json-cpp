@@ -7,11 +7,12 @@ project(json-cpp CXX)
 
 set(JSONCPP_VERSION 0.0.0)
 
-# Install locations
-set(CONFIG_INSTALL_DESTINATION cmake)
-set(LIB_INSTALL_DESTINATION lib)
-set(BIN_INSTALL_DESTINATION bin)
-set(INCLUDE_INSTALL_DESTINATION include)
+# Common paths & utils
+find_package(
+  MakerBot
+  CONFIG
+  REQUIRED
+  NO_CMAKE_BUILDS_PATH)
 
 include_directories(include/jsoncpp)
 
