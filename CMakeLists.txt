@@ -38,9 +38,9 @@ add_library(
 include(CMakePackageConfigHelpers)
 
 # Names of files for exporting
-set(JSONCPP_CONFIG "${CMAKE_CURRENT_BINARY_DIR}/JsonCppConfig.cmake")
+set(JSONCPP_CONFIG "${CMAKE_BINARY_DIR}/JsonCppConfig.cmake")
 set(JSONCPP_CONFIG_TEMPLATE "JsonCppConfig.cmake.in")
-set(JSONCPP_CONFIG_VERSION "${CMAKE_CURRENT_BINARY_DIR}/JsonCppConfigVersion.cmake")
+set(JSONCPP_CONFIG_VERSION "${CMAKE_BINARY_DIR}/JsonCppConfigVersion.cmake")
 set(JSONCPP_TARGETS_FILE "JsonCppTargets")
 
 # Create the config file from the config template
