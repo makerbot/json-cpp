@@ -1,5 +1,6 @@
-# ignore obj folder
+# ignore build products folders
 obj/
+build/
 # ignore object files
 *.o
 # ignore scons database
