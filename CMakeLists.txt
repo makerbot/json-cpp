@@ -17,5 +17,11 @@ install_headers(${PROJECT_SOURCE_DIR}/include/)
 
 include_directories(${INCLUDE_OUTPUT_PATH}/jsoncpp)
 include_directories(src/lib_json)
+
+enable_testing()
+add_subdirectory(src/jsontestrunner)
+add_subdirectory(src/test_lib_json)
+
 add_subdirectory(src/lib_json)
 add_subdirectory(doc)
+
