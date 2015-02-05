@@ -14,3 +14,8 @@ find_package(
 
 add_subdirectory(src/lib_json)
 add_subdirectory(doc)
+
+enable_testing()
+
+add_subdirectory(src/jsontestrunner)
+add_subdirectory(src/test_lib_json)
