@@ -1,4 +1,5 @@
 
+# json-cpp has some fancy doxygen setup, so we just use their script
 find_package(Doxygen)
 if(DOXYGEN_FOUND)
     add_custom_target(doxybuild)
@@ -9,18 +10,18 @@ if(DOXYGEN_FOUND)
 
     add_custom_command(
         TARGET doxybuild
-        COMMAND python "${PROJECT_SOURCE_DIR}/doxybuild.py"
+        COMMAND
+            python "${PROJECT_SOURCE_DIR}/doxybuild.py"
+            --doxygen=${DOXYGEN_EXECUTABLE}
         WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
         VERBATIM)
 
-    add_dependencies(docs doxybuild)
-
     install_docs(
-        "${PROJECT_SOURCE_DIR}/dist/doxygen"
-        _PREFIX jsoncpp
+        DIRECTORY "${PROJECT_SOURCE_DIR}/dist/doxygen"
+        PREFIX jsoncpp/doxygen
         DEPENDS doxybuild)
 endif()
 
 install_docs(
-    "${PROJECT_SOURCE_DIR}/doc/readme.txt"
+    FILES "${PROJECT_SOURCE_DIR}/doc/readme.txt"
     PREFIX jsoncpp)
