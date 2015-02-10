@@ -14,4 +14,4 @@ add_test(
     COMMAND
         ${PYTHON_EXECUTABLE}
         "${PROJECT_SOURCE_DIR}/test/runjsontests.py"
-        "${EXECUTABLE_OUTPUT_PATH}/jsontestrunner")
+        jsontestrunner)

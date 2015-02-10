@@ -13,4 +13,4 @@ add_test(
     COMMAND
         ${PYTHON_EXECUTABLE}
         "${PROJECT_SOURCE_DIR}/test/rununittests.py"
-        "${EXECUTABLE_OUTPUT_PATH}/test_lib_json")
+        test_lib_json)
