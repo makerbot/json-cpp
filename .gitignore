@@ -1,5 +1,8 @@
 # ignore obj folder
 obj/
+# standard cmake folders
+build
+build64
 # ignore object files
 *.o
 # ignore scons database
@@ -12,3 +15,7 @@ obj/
 *.pdb
 *.vcxproj
 *.rc
+
+# default cmake build folders
+_build
+_build64
