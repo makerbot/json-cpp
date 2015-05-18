@@ -73,6 +73,13 @@ std::string valueToString( UInt value )
 
 std::string valueToString( double value )
 {
+   // (sean.oconnor) This is the standard way to convert string into floating point.
+   // It is literally THE recommended way to convert and also has been a standard for years.
+   // I'd imagine it is cross platform as it's a c++ standard...but maybe not?
+   std::ostringstream convert;
+   convert << value;
+   return convert.str();
+   /* (sean.oconnor) If someone could tell me why in the world jsoncpp does it's conversion like this I'd be very interested.
    char buffer[32];
 #if defined(_MSC_VER) && defined(__STDC_SECURE_LIB__) // Use secure version with visual studio 2005 to avoid warning. 
    sprintf_s(buffer, sizeof(buffer), "%#.16g", value); 
@@ -107,7 +114,7 @@ std::string valueToString( double value )
        return buffer;
      }
    }
-   return buffer;
+   return buffer;*/
 }
 
 
