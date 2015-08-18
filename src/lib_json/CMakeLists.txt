@@ -8,7 +8,7 @@ set(sources
     json_value.cpp
     json_writer.cpp)
 
-add_compiler_flags()
+#add_compiler_flags()
 
 add_library(jsoncpp ${sources} ${headers})
 
