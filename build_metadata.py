@@ -8,6 +8,6 @@ else:
         artifactory_utils.ArtifactSelector(
             project="Toolchain-Release",
             revision="master",
-            version="3.9.*",
+            version="3.10.*",
             stable_required=True)
     ]
