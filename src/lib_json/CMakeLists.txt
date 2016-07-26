@@ -11,8 +11,6 @@ set(sources
 add_library(jsoncpp ${sources} ${headers})
 use_standard_flags(jsoncpp)
 
-get_header_prefix_root(install_root)
-
 target_include_directories(
     jsoncpp
     PUBLIC
@@ -28,4 +26,4 @@ generate_and_install_config(
 
 install(
     DIRECTORY "${PROJECT_SOURCE_DIR}/include/jsoncpp"
-    DESTINATION "${install_root}${HEADER_INSTALL_DIR}")
+    DESTINATION "${HEADER_INSTALL_DIR}")
