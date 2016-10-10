@@ -10,12 +10,13 @@ set(sources
 
 add_library(jsoncpp ${sources} ${headers})
 use_standard_flags(jsoncpp)
+
 target_include_directories(
     jsoncpp
     PUBLIC
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/jsoncpp>
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/lib_json>
-        $<INSTALL_INTERFACE:${HEADER_INSTALL_DIR}>)
+        $<INSTALL_INTERFACE:${install_root}${HEADER_INSTALL_DIR}>)
 
 export_api(jsoncpp JSON_API)
 
