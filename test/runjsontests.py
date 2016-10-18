@@ -7,6 +7,10 @@ import subprocess
 
 VALGRIND_CMD = 'valgrind --tool=memcheck --leak-check=yes --undef-value-errors=yes '
 
+# Hack for OSX el capitan and above
+if "TEST_DYLD_LIBRARY_PATH" in os.environ:
+    os.environ["DYLD_LIBRARY_PATH"] = os.environ["TEST_DYLD_LIBRARY_PATH"]
+
 def compareOutputs( expected, actual, message ):
     expected = expected.strip().replace('\r','').split('\n')
     actual = actual.strip().replace('\r','').split('\n')
@@ -39,17 +43,25 @@ def safeReadFile( path ):
         return '<File "%s" is missing: %s>' % (path,e)
 
 def runAllTests( jsontest_executable_path, input_dir = None,
-                 use_valgrind=False, with_json_checker=False ):
+                 use_valgrind=False, with_json_checker=False,
+                 with_json_arr_stream=True ):
     if not input_dir:
         input_dir = os.path.join( os.getcwd(), 'data' )
     tests = glob( os.path.join( input_dir, '*.json' ) )
+    
     if with_json_checker:
         test_jsonchecker = glob( os.path.join( input_dir, '../jsonchecker', '*.json' ) )
     else:
         test_jsonchecker = []
+    
+    if with_json_arr_stream:
+        test_json_arr_stream = glob( os.path.join( input_dir, '../jsonarrstream', '*.json' ) )
+    else:
+        test_json_arr_stream = []
+
     failed_tests = []
 
-    for input_path in tests + test_jsonchecker:
+    for input_path in tests + test_jsonchecker + test_json_arr_stream:
         cmd = []
         if use_valgrind:
             cmd.append(VALGRIND_CMD)
@@ -57,18 +69,24 @@ def runAllTests( jsontest_executable_path, input_dir = None,
         cmd.append(jsontest_executable_path)
 
         is_json_checker_test = input_path in test_jsonchecker
+        is_json_arr_stream_test = input_path in test_json_arr_stream
         if is_json_checker_test:
             cmd.append('--json-checker')
+        elif is_json_arr_stream_test:
+            cmd.append('--json-arr-stream')
 
         cmd.append(input_path)
 
         print 'TESTING:', cmd
 
-        try:
-            process_output = subprocess.check_output(cmd)
-            status = None
-        except subprocess.CalledProcessError as e:
-            status = e.returncode
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE)
+        process_output, process_err = process.communicate()
+        status = None if process.returncode == 0 else process.returncode
+
+        if status:
+            process_output = "(stdout)\n" + process_output + \
+                             "\n(stderr)\n" + process_err
 
         if is_json_checker_test:
             expect_failure = os.path.basename( input_path ).startswith( 'fail' )
@@ -95,14 +113,19 @@ def runAllTests( jsontest_executable_path, input_dir = None,
                 failed_tests.append( (input_path, 'Parsing failed:\n' + process_output) )
             else:
                 expected_output_path = os.path.splitext(input_path)[0] + '.expected'
-                expected_output = file( expected_output_path, 'rt' ).read()
-                detail = ( compareOutputs( expected_output, actual_output, 'input' )
-                            or compareOutputs( expected_output, actual_rewrite_output, 'rewrite' ) )
-                if detail:
-                    print 'FAILED'
-                    failed_tests.append( (input_path, detail) )
+                
+                if not os.path.exists( expected_output_path ):
+                    print 'PARSE ONLY'
                 else:
-                    print 'OK'
+                    expected_output = file( expected_output_path, 'rt' ).read()
+                    detail = compareOutputs( expected_output, actual_output, 'input' )
+                    if not detail and os.path.exists(base_path + '.actual-rewrite'):
+                        detail = compareOutputs( expected_output, actual_rewrite_output, 'rewrite' )
+                    if detail:
+                        print 'FAILED'
+                        failed_tests.append( (input_path, detail) )
+                    else:
+                        print 'OK'
 
     if failed_tests:
         print

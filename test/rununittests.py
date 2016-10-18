@@ -7,6 +7,10 @@ import optparse
 
 VALGRIND_CMD = 'valgrind --tool=memcheck --leak-check=yes --undef-value-errors=yes'
 
+# Hack for OSX el capitan and above
+if "TEST_DYLD_LIBRARY_PATH" in os.environ:
+    os.environ["DYLD_LIBRARY_PATH"] = os.environ["TEST_DYLD_LIBRARY_PATH"]
+
 class TestProxy(object):
     def __init__( self, test_exe_path, use_valgrind=False ):
         self.test_exe_path = os.path.normpath( os.path.abspath( test_exe_path ) )

@@ -109,81 +109,141 @@ Reader::Reader( const Features &features )
 {
 }
 
+bool
+Reader::parse( const std::string &document, Value &root, bool collectComments )
+{
+    startParse( document, collectComments );
+    return readDocument( root );
+}
 
 bool
-Reader::parse( const std::string &document, 
+Reader::parse( const char *beginDoc,
+               const char *endDoc,
                Value &root,
                bool collectComments )
 {
-   document_ = document;
-   const char *begin = document_.c_str();
-   const char *end = begin + document_.length();
-   return parse( begin, end, root, collectComments );
+    return parse( std::string( beginDoc, endDoc ), root, collectComments );
 }
-
 
 bool
-Reader::parse( std::istream& sin,
-               Value &root,
-               bool collectComments )
+Reader::parse( std::istream &sin, Value &root, bool collectComments )
 {
-   //std::istream_iterator<char> begin(sin);
-   //std::istream_iterator<char> end;
-   // Those would allow streamed input from a file, if parse() were a
-   // template function.
-
-   // Since std::string is reference-counted, this at least does not
-   // create an extra copy.
-   //std::string doc;
-   //std::getline(sin, doc, std::ios::eof);
-   std::string doc((std::istreambuf_iterator<char>(sin)),
-                   std::istreambuf_iterator<char>()); 
-   return parse( doc, root, collectComments );
+    startParse( sin, collectComments );
+    return readDocument( root );
 }
 
-bool 
-Reader::parse( const char *beginDoc, const char *endDoc, 
-               Value &root,
-               bool collectComments )
+void
+Reader::startParse( const std::string &document, bool collectComments )
 {
-   if ( !features_.allowComments_ )
-   {
-      collectComments = false;
-   }
-
-   begin_ = beginDoc;
-   end_ = endDoc;
-   collectComments_ = collectComments;
-   current_ = begin_;
-   lastValueEnd_ = 0;
-   lastValue_ = 0;
-   commentsBefore_ = "";
-   errors_.clear();
-   while ( !nodes_.empty() )
-      nodes_.pop();
-   nodes_.push( &root );
-   
-   bool successful = readValue();
-   Token token;
-   skipCommentTokens( token );
-   if ( collectComments_  &&  !commentsBefore_.empty() )
-      root.setComment( commentsBefore_, commentAfter );
-   if ( features_.strictRoot_ )
-   {
-      if ( !root.isArray()  &&  !root.isObject() )
-      {
-         // Set error location to start of doc, ideally should be first token found in doc
-         token.type_ = tokenError;
-         token.start_ = beginDoc;
-         token.end_ = endDoc;
-         addError( "A valid JSON document must be either an array or an object value.",
-                   token );
-         return false;
-      }
-   }
-   return successful;
+    document_ = document;
+    buffer_.reset( document_ );
+    restartParse( buffer_.begin(), collectComments );
 }
 
+void
+Reader::startParse( std::istream &sin, bool collectComments )
+{
+    buffer_.reset( sin );
+    restartParse( buffer_.begin(), collectComments );
+}
+
+void
+Reader::restartParse( Location start, bool collectComments )
+{
+    buffer_.resetTo( start );
+    begin_ = buffer_.begin();
+    end_ = buffer_.end();
+    current_ = begin_;
+    lastValueEnd_ = 0;
+    lastValue_ = 0;
+
+    collectComments_ = ( features_.allowComments_ && collectComments );
+    commentsBefore_ = "";
+
+    errors_.clear();
+    while ( !nodes_.empty() ) nodes_.pop();
+}
+
+bool
+Reader::readDocument( Value &root )
+{
+    nodes_.push( &root );
+
+    bool successful = readValue();
+    Token token;
+    skipCommentTokens( token );
+    if ( collectComments_ && !commentsBefore_.empty() )
+        root.setComment( commentsBefore_, commentAfter );
+    if ( features_.strictRoot_ )
+    {
+        if ( !root.isArray() && !root.isObject() )
+        {
+            // Set error location to start of doc, ideally should be first token
+            // found in doc
+            token.type_ = tokenError;
+            token.start_ = begin_;
+            token.end_ = token.end_;
+            addError(
+                "A valid JSON document must be either an array or an object "
+                "value.",
+                token );
+            return false;
+        }
+    }
+    return successful;
+}
+
+bool
+Reader::readNextArrayElement( Token &token, Json::Value &value )
+{
+    if ( token.type_ != tokenArraySeparator )
+    {
+        skipCommentTokens( token );
+        if ( token.type_ != tokenArrayBegin )
+        {
+            // Not the start of an array!
+            token.type_ = tokenError;
+            return false;
+        }
+
+        skipSpaces();
+
+        if ( *current_ == ']' )  // empty array
+        {
+            Token endArray;
+            readToken( endArray );
+            return false;
+        }
+    }
+
+    // Read next array value
+    if ( !readNextValue( value ) )
+    {
+        // Bad element value
+        token.type_ = tokenError;
+        return false;
+    }
+
+    skipCommentTokens( token );
+
+    if ( token.type_ != tokenArraySeparator && token.type_ != tokenArrayEnd )
+    {
+        // Array not continued or ended
+        token.type_ = tokenError;
+    }
+
+    // ... but we've always got a valid value we read last
+    return true;
+}
+
+bool
+Reader::readNextValue( Json::Value &value )
+{
+    nodes_.push( &value );
+    bool ok = readValue();
+    nodes_.pop();
+    return ok;
+}
 
 bool
 Reader::readValue()
@@ -354,7 +414,7 @@ Reader::skipSpaces()
 
 
 bool 
-Reader::match( Location pattern, 
+Reader::match( const char* pattern, 
                int patternLength )
 {
    if ( end_ - current_ < patternLength )
@@ -401,17 +461,19 @@ Reader::addComment( Location begin,
                     Location end, 
                     CommentPlacement placement )
 {
+   std::string comment( begin.raw(), end.raw() );
+
    assert( collectComments_ );
    if ( placement == commentAfterOnSameLine )
    {
       assert( lastValue_ != 0 );
-      lastValue_->setComment( std::string( begin, end ), placement );
+      lastValue_->setComment( comment, placement );
    }
    else
    {
       if ( !commentsBefore_.empty() )
          commentsBefore_ += "\n";
-      commentsBefore_ += std::string( begin, end );
+      commentsBefore_ += comment;
    }
 }
 
@@ -599,7 +661,7 @@ Reader::decodeNumber( Token &token )
    {
       Char c = *current++;
       if ( c < '0'  ||  c > '9' )
-         return addError( "'" + std::string( token.start_, token.end_ ) + "' is not a number.", token );
+         return addError( "'" + std::string( token.start_.raw(), token.end_.raw() ) + "' is not a number.", token );
       Value::UInt digit(c - '0');
       if ( value >= threshold )
       {
@@ -625,7 +687,6 @@ Reader::decodeNumber( Token &token )
    return true;
 }
 
-
 bool 
 Reader::decodeDouble( Token &token )
 {
@@ -649,18 +710,20 @@ Reader::decodeDouble( Token &token )
    if ( length <= bufferSize )
    {
       Char buffer[bufferSize+1];
-      memcpy( buffer, token.start_, length );
+      Location it = token.start_;
+      for (int i = 0; i < length; ++i, ++it)
+         buffer[i] = *it;
       buffer[length] = 0;
       count = sscanf( buffer, format, &value );
    }
    else
    {
-      std::string buffer( token.start_, token.end_ );
+      std::string buffer( token.start_.raw(), token.end_.raw() );
       count = sscanf( buffer.c_str(), format, &value );
    }
 
    if ( count != 1 )
-      return addError( "'" + std::string( token.start_, token.end_ ) + "' is not a number.", token );
+      return addError( "'" + std::string( token.start_.raw(), token.end_.raw() ) + "' is not a number.", token );
    currentValue() = value;
    return true;
 }
@@ -918,5 +981,53 @@ std::istream& operator>>( std::istream &sin, Value &root )
     return sin;
 }
 
+ArrayStreamReader::ArrayStreamReader( std::istream &sin ) : sin_( sin )
+{
+    token_.type_ = Reader::tokenEndOfStream;
+}
+
+ArrayStreamReader::ArrayStreamReader( const Features &features,
+                                      std::istream &sin )
+    : sin_( sin ), reader_( features )
+{
+    token_.type_ = Reader::tokenEndOfStream;
+}
+
+bool
+ArrayStreamReader::parseNextElement( Value &value, bool &error )
+{
+    if ( token_.type_ == Reader::tokenEndOfStream )
+    {
+        // Sentinel start of parse
+        reader_.startParse( sin_ );
+    }
+    else if ( token_.type_ == Reader::tokenArrayEnd )
+    {
+        // Done with parse
+        return false;
+    }
+    else if ( token_.type_ != Reader::tokenArraySeparator )
+    {
+        // Something weird happened
+        error = true;
+        return false;
+    }
+
+    bool read_value = reader_.readNextArrayElement( token_, value );
+
+    if ( token_.type_ == Reader::tokenError )
+    {
+        // Something weird happened
+        error = true;
+    }
+    else if ( token_.type_ == Reader::tokenArraySeparator ||
+              token_.type_ == Reader::tokenArrayEnd )
+    {
+        // Restart parsing at the end of the last read token
+        reader_.restartParse( token_.end_ );
+    }
+
+    return read_value;
+}
 
 } // namespace Json

@@ -9,6 +9,7 @@
 #if !defined(JSON_IS_AMALGAMATION)
 # include "features.h"
 # include "value.h"
+# include "forward_buffer.h"
 #endif // if !defined(JSON_IS_AMALGAMATION)
 # include <deque>
 # include <stack>
@@ -29,8 +30,9 @@ namespace Json {
    class JSON_API Reader
    {
    public:
+      
       typedef char Char;
-      typedef const Char *Location;
+      typedef ForwardBuffer::Iterator Location;
 
       /** \brief Constructs a Reader allowing all features
        * for parsing.
@@ -95,6 +97,9 @@ namespace Json {
       std::string getFormattedErrorMessages() const;
 
    private:
+  
+      friend class ArrayStreamReader;
+
       enum TokenType
       {
          tokenEndOfStream = 0,
@@ -131,10 +136,19 @@ namespace Json {
 
       typedef std::deque<ErrorInfo> Errors;
 
+      void startParse( std::istream &sin, bool collectComments = true );
+      void startParse( const std::string &document, bool collectComments = true );
+      void restartParse( Location begin, bool collectComments = true );
+
+      bool readDocument( Value &root );
+
+      bool readNextArrayElement( Token &token, Json::Value &value );
+      bool readNextValue( Json::Value &value );
+
       bool expectToken( TokenType type, Token &token, const char *message );
       bool readToken( Token &token );
       void skipSpaces();
-      bool match( Location pattern, 
+      bool match( const char* pattern, 
                   int patternLength );
       bool readComment();
       bool readCStyleComment();
@@ -179,6 +193,7 @@ namespace Json {
       Nodes nodes_;
       Errors errors_;
       std::string document_;
+      ForwardBuffer buffer_;
       Location begin_;
       Location end_;
       Location current_;
@@ -213,7 +228,39 @@ namespace Json {
     \throw std::exception on parse error.
     \see Json::operator<<()
    */
-   JSON_API std::istream& operator>>( std::istream&, Value& );
+   JSON_API std::istream &operator>>( std::istream &, Value & );
+
+   /**
+    * A streaming reader of big JSON input files which consist of a root
+    * array with many element values.
+    * 
+    * Reads one-element-at-a-time, which should give good performance when
+    * the elements themselves are small.
+    *
+    * Usage:
+    *  ArrayStreamReader reader(stream);
+    *
+    *  Json::Value value;
+    *  bool error;
+    *  while (parseNextElement(value, error)) {
+    *    // Handle value
+    *  }
+    *  // Handle error
+    */
+   class JSON_API ArrayStreamReader
+   {
+   public:
+       ArrayStreamReader( std::istream &sin );
+
+       ArrayStreamReader( const Features &features, std::istream &sin );
+
+       bool parseNextElement( Value &value, bool &error );
+
+   private:
+       std::istream &sin_;
+       Reader reader_;
+       Reader::Token token_;
+   };
 
 } // namespace Json
 

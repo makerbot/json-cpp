@@ -10,6 +10,7 @@
 #include <json/json.h>
 #include <algorithm> // sort
 #include <stdio.h>
+#include <sstream>
 
 #if defined(_MSC_VER)  &&  _MSC_VER >= 1310
 # pragma warning( disable: 4996 )     // disable fopen deprecation warning
@@ -147,6 +148,35 @@ parseAndSaveValueTree( const std::string &input,
    return 0;
 }
 
+static int
+streamParseArrayElements( const std::string &input,
+                          const std::string &actual,
+                          const std::string &kind,
+                          const Json::Features &features )
+{
+
+    std::istringstream input_stream( input );
+
+    Json::ArrayStreamReader reader( features, input_stream );
+
+    FILE *factual = fopen( actual.c_str(), "wt" );
+    if ( !factual )
+      {
+         printf( "Failed to create %s actual file.\n", kind.c_str() );
+         return 2;
+      }
+
+    Json::Value element;
+    bool error;
+    while ( reader.parseNextElement( element, error ) )
+    {
+        printValueTree( factual, element );
+    }
+
+    fclose( factual );
+
+    return error ? 1 : 0;
+}
 
 static int
 rewriteValueTree( const std::string &rewritePath, 
@@ -205,9 +235,12 @@ printUsage( const char *argv[] )
 int
 parseCommandLine( int argc, const char *argv[], 
                   Json::Features &features, std::string &path,
-                  bool &parseOnly )
+                  bool &parseOnly, 
+                  bool &streamParseArray )
 {
    parseOnly = false;
+   streamParseArray = false;
+
    if ( argc < 2 )
    {
       return printUsage( argv );
@@ -227,6 +260,14 @@ parseCommandLine( int argc, const char *argv[],
       return 3;
    }
 
+   if ( std::string(argv[1]) == "--json-arr-stream" )
+   {
+      features = Json::Features::all();
+      parseOnly = true;
+      streamParseArray = true;
+      ++index;
+   }
+
    if ( index == argc  ||  index + 1 < argc )
    {
       return printUsage( argv );
@@ -242,7 +283,10 @@ int main( int argc, const char *argv[] )
    std::string path;
    Json::Features features;
    bool parseOnly;
-   int exitCode = parseCommandLine( argc, argv, features, path, parseOnly );
+   bool streamParseArray;
+   int exitCode = parseCommandLine( argc, argv, features, path,
+                                    parseOnly, 
+                                    streamParseArray );
    if ( exitCode != 0 )
    {
       return exitCode;
@@ -257,7 +301,7 @@ int main( int argc, const char *argv[] )
          return 3;
       }
 
-      std::string basePath = removeSuffix( argv[1], ".json" );
+      std::string basePath = removeSuffix( path, ".json" );
       if ( !parseOnly  &&  basePath.empty() )
       {
          printf( "Bad input path. Path does not end with '.expected':\n%s\n", path.c_str() );
@@ -269,17 +313,24 @@ int main( int argc, const char *argv[] )
       std::string rewriteActualPath = basePath + ".actual-rewrite";
 
       Json::Value root;
-      exitCode = parseAndSaveValueTree( input, actualPath, "input", root, features, parseOnly );
-      if ( exitCode == 0  &&  !parseOnly )
-      {
-         std::string rewrite;
-         exitCode = rewriteValueTree( rewritePath, root, rewrite );
-         if ( exitCode == 0 )
-         {
-            Json::Value rewriteRoot;
-            exitCode = parseAndSaveValueTree( rewrite, rewriteActualPath, 
-               "rewrite", rewriteRoot, features, parseOnly );
-         }
+
+      if ( streamParseArray ) {
+        exitCode = streamParseArrayElements( input, actualPath, "input", features );
+      }
+      else {
+        exitCode = parseAndSaveValueTree( input, actualPath, "input", root, features, parseOnly );
+
+        if ( exitCode == 0  &&  !parseOnly )
+        {
+           std::string rewrite;
+           exitCode = rewriteValueTree( rewritePath, root, rewrite );
+           if ( exitCode == 0 )
+           {
+              Json::Value rewriteRoot;
+              exitCode = parseAndSaveValueTree( rewrite, rewriteActualPath, 
+                                                "rewrite", rewriteRoot, features, parseOnly );
+           }
+        }
       }
    }
    catch ( const std::exception &e )
