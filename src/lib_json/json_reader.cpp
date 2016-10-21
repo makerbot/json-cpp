@@ -996,6 +996,7 @@ ArrayStreamReader::ArrayStreamReader( const Features &features,
 bool
 ArrayStreamReader::parseNextElement( Value &value, bool &error )
 {
+    error = false;
     if ( token_.type_ == Reader::tokenEndOfStream )
     {
         // Sentinel start of parse
