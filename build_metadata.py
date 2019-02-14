@@ -7,7 +7,7 @@ else:
     dependencies = [
         artifactory_utils.ArtifactSelector(
             project="Toolchain-Release",
-            revision="ReleaseMorepork0.59",
+            revision="develop",
             version="^4.6",
             stable_required=True)
     ]
