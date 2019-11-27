@@ -3,7 +3,7 @@ include_directories("${PROJECT_SOURCE_DIR}/include/jsoncpp")
 include_directories("${PROJECT_SOURCE_DIR}/src/lib_json")
 include_directories("${PROJECT_SOURCE_DIR}/jsontestrunner")
 
-find_package(PythonInterp REQUIRED)
+find_package(PythonInterp 2 EXACT)
 
 add_executable(jsontestrunner main.cpp)
 use_standard_flags(jsontestrunner)
