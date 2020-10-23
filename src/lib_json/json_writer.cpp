@@ -348,7 +348,7 @@ StyledWriter::writeValue( const Value &value )
                const Value &childValue = value[name];
                writeCommentBeforeValue( childValue );
                writeWithIndent( valueToQuotedString( name.c_str() ) );
-               document_ += " : ";
+               document_ += ": ";
                writeValue( childValue );
                if ( ++it == members.end() )
                {
@@ -625,7 +625,7 @@ StyledStreamWriter::writeValue( const Value &value )
                const Value &childValue = value[name];
                writeCommentBeforeValue( childValue );
                writeWithIndent( valueToQuotedString( name.c_str() ) );
-               *document_ << " : ";
+               *document_ << ": ";
                writeValue( childValue );
                if ( ++it == members.end() )
                {
